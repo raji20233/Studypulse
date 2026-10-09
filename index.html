@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>StudyPulse</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #eef4ff;
+  font-family: Arial, sans-serif;
+  color: #111;
+}
+
+header {
+  background: #2563eb;
+  color: white;
+  text-align: center;
+  padding: 18px;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.container {
+  max-width: 720px;
+  margin: auto;
+  padding: 15px;
+}
+
+.card {
+  background: white;
+  border-radius: 25px;
+  padding: 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 5px 20px rgba(0,0,0,.08);
+}
+
+h2 {
+  text-align: center;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-top: 12px;
+}
+
+input,
+select,
+button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 7px;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+button {
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-weight: bold;
+}
+
+.subject {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.subject input {
+  flex: 2;
+}
+
+.subject select {
+  flex: 1;
+}
+
+.remove {
+  width: 50px;
+  background: #ef4444;
+}
+
+.task {
+  background: #f5f8ff;
+  border-left: 7px solid #2563eb;
+  border-radius: 20px;
+  padding: 18px;
+  margin: 12px 0;
+}
+
+.task h3 {
+  margin: 0 0 10px;
+}
+
+.time {
+  font-weight: bold;
+  font-size: 18px;
+}
+
+#nowBox {
+  text-align: center;
+}
+
+#currentTask {
+  font-size: 23px;
+  font-weight: bold;
+}
+
+#countdown {
+  font-size: 43px;
+  color: #2563eb;
+  font-weight: bold;
+  margin: 15px 0;
+}
+
+.test {
+  background: #f59e0b;
+}
+
+.start {
+  background: #2563eb;
+}
+
+.note {
+  background: #fff7ed;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<header>📚 StudyPulse</header>
+
+<div class="container">
+
+<!-- USER SETTINGS -->
+
+<div class="card">
+
+<h2>⚙️ My Daily Settings</h2>
+
+<label>👤 Name</label>
+<input id="studentName" placeholder="Enter your name">
+
+<label>🌅 Wake Up Time</label>
+<input id="wakeTime" type="time" value="06:30">
+
+<label>🎓 College Start</label>
+<input id="collegeStart" type="time" value="08:00">
+
+<label>🎓 College End</label>
+<input id="collegeEnd" type="time" value="15:00">
+
+<label>😴 Sleep Time</label>
+<input id="sleepTime" type="time" value="22:30">
+
+<label>🍳 Breakfast Time</label>
+<input id="breakfastTime" type="time" value="07:15">
+
+<label>🍛 Lunch Time</label>
+<input id="lunchTime" type="time" value="15:00">
+
+<label>🍽️ Dinner Time</label>
+<input id="dinnerTime" type="time" value="19:00">
+
+<label>📚 Daily Study Hours</label>
+<input
+  id="studyHours"
+  type="number"
+  min="1"
+  max="8"
+  value="3"
+>
+
+</div>
+
+
+<!-- SUBJECTS -->
+
+<div class="card">
+
+<h2>📚 Add Subjects</h2>
+
+<div id="subjects"></div>
+
+<button onclick="addSubject()">
+➕ Add Subject
+</button>
+
+<button onclick="generateTimetable()">
+📅 Generate Timetable
+</button>
+
+<div class="note">
+💡 Hard subjects ki ekkuva study time, Easy subjects ki konchem takkuva time automatically arrange chestundi.
+</div>
+
+</div>
+
+
+<!-- TIMETABLE -->
+
+<div class="card">
+
+<h2>🕐 My Daily Timetable</h2>
+
+<div id="timetable">
+<p style="text-align:center">
+Enter your timings and generate timetable.
+</p>
+</div>
+
+</div>
+
+
+<!-- CURRENT TASK -->
+
+<div class="card" id="nowBox">
+
+<div id="currentTask">
+▶️ Press START DAY
+</div>
+
+<div id="countdown">
+00:00:00
+</div>
+
+<div id="taskTime">
+⏰ Waiting...
+</div>
+
+<div id="alarmStatus">
+🔕 Alarm is OFF
+</div>
+
+<button class="test" onclick="testAlarm()">
+🔔 TEST ALARM
+</button>
+
+<button class="start" onclick="startDay()">
+▶️ START DAY & ENABLE ALARM
+</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+let subjects = [];
+let timetable = [];
+
+let audioContext = null;
+let dayStarted = false;
+let timer = null;
+let lastTaskIndex = -1;
+
+
+// =================================================
+// ADD SUBJECT
+// =================================================
+
+function addSubject(name="", difficulty="Medium") {
+
+  const div = document.createElement("div");
+
+  div.className = "subject";
+
+  div.innerHTML = `
+
+    <input
+      class="subName"
+      placeholder="Subject name"
+      value="${name}"
+    >
+
+    <select class="difficulty">
+
+      <option ${difficulty=="Hard" ? "selected":""}>
+        Hard
+      </option>
+
+      <option ${difficulty=="Medium" ? "selected":""}>
+        Medium
+      </option>
+
+      <option ${difficulty=="Easy" ? "selected":""}>
+        Easy
+      </option>
+
+    </select>
+
+    <button
+      class="remove"
+      onclick="this.parentElement.remove()">
+      X
+    </button>
+
+  `;
+
+  document
+    .getElementById("subjects")
+    .appendChild(div);
+}
+
+
+// Default subjects
+addSubject("Java","Hard");
+addSubject("Data Structures","Medium");
+
+
+// =================================================
+// TIME FUNCTIONS
+// =================================================
+
+function toMinutes(time) {
+
+  const [h,m] = time.split(":").map(Number);
+
+  return h * 60 + m;
+}
+
+
+function toTime(minutes) {
+
+  minutes = ((minutes % 1440) + 1440) % 1440;
+
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+
+  return String(h).padStart(2,"0") +
+         ":" +
+         String(m).padStart(2,"0");
+}
+
+
+function format12(time) {
+
+  const [h,m] = time.split(":").map(Number);
+
+  let hour = h % 12;
+
+  if(hour === 0) hour = 12;
+
+  const ampm = h >= 12 ? "PM" : "AM";
+
+  return hour + ":" +
+         String(m).padStart(2,"0") +
+         " " + ampm;
+}
+
+
+// =================================================
+// ADD TASK
+// =================================================
+
+function addTask(name,start,end) {
+
+  timetable.push({
+    name:name,
+    start:start,
+    end:end
+  });
+
+}
+
+
+// =================================================
+// GENERATE TIMETABLE
+// =================================================
+
+function generateTimetable() {
+
+  const wake =
+    document.getElementById("wakeTime").value;
+
+  const collegeStart =
+    document.getElementById("collegeStart").value;
+
+  const collegeEnd =
+    document.getElementById("collegeEnd").value;
+
+  const sleep =
+    document.getElementById("sleepTime").value;
+
+  const breakfast =
+    document.getElementById("breakfastTime").value;
+
+  const lunch =
+    document.getElementById("lunchTime").value;
+
+  const dinner =
+    document.getElementById("dinnerTime").value;
+
+  const studyHours =
+    Number(document.getElementById("studyHours").value);
+
+
+  if(!wake || !collegeStart ||
+     !collegeEnd || !sleep ||
+     !breakfast || !lunch || !dinner) {
+
+    alert("Please enter all timings.");
+
+    return;
+  }
+
+
+  // ------------------------------
+  // Check sleep duration
+  // ------------------------------
+
+  let wakeMin = toMinutes(wake);
+  let sleepMin = toMinutes(sleep);
+
+  let sleepDuration;
+
+  if(sleepMin <= wakeMin) {
+
+    sleepDuration =
+      (1440 - sleepMin) + wakeMin;
+
+  } else {
+
+    sleepDuration =
+      sleepMin - wakeMin;
+
+  }
+
+
+  if(sleepDuration < 480) {
+
+    alert(
+      "Please keep at least 8 hours for sleep."
+    );
+
+    return;
+  }
+
+
+  // ------------------------------
+  // Read subjects
+  // ------------------------------
+
+  subjects = [];
+
+  document
+    .querySelectorAll(".subject")
+    .forEach(row => {
+
+      const name =
+        row.querySelector(".subName")
+        .value.trim();
+
+      const difficulty =
+        row.querySelector(".difficulty")
+        .value;
+
+      if(name) {
+
+        subjects.push({
+          name:name,
+          difficulty:difficulty
+        });
+
+      }
+
+    });
+
+
+  if(subjects.length === 0) {
+
+    alert("Please add at least one subject.");
+
+    return;
+  }
+
+
+  // ------------------------------
+  // Reset timetable
+  // ------------------------------
+
+  timetable = [];
+
+
+  // ------------------------------
+  // Morning
+  // ------------------------------
+
+  addTask(
+    "🌅 Wake Up & Fresh Up",
+    wake,
+    toTime(toMinutes(wake)+30)
+  );
+
+
+  addTask(
+    "🧘 Exercise / Relax",
+    toTime(toMinutes(wake)+30),
+    toTime(toMinutes(wake)+50)
+  );
+
+
+  addTask(
+    "🍳 Breakfast",
+    breakfast,
+    toTime(toMinutes(breakfast)+30)
+  );
+
+
+  // ------------------------------
+  // College
+  // ------------------------------
+
+  addTask(
+    "🎓 College / Classes",
+    collegeStart,
+    collegeEnd
+  );
+
+
+  // ------------------------------
+  // Lunch
+  // ------------------------------
+
+  addTask(
+    "🍛 Lunch & Rest",
+    lunch,
+    toTime(toMinutes(lunch)+45)
+  );
+
+
+  // ------------------------------
+  // Study time
+  // ------------------------------
+
+  const totalStudyMinutes =
+    studyHours * 60;
+
+
+  const hard =
+    subjects.filter(s => s.difficulty==="Hard");
+
+  const medium =
+    subjects.filter(s => s.difficulty==="Medium");
+
+  const easy =
+    subjects.filter(s => s.difficulty==="Easy");
+
+
+  const ordered =
+    [...hard,...medium,...easy];
+
+
+  let eachTime =
+    Math.floor(
+      totalStudyMinutes /
+      ordered.length
+    );
+
+
+  if(eachTime < 30) eachTime = 30;
+
+
+  // Start after college/lunch
+  let studyStart =
+    Math.max(
+      toMinutes(collegeEnd),
+      toMinutes(lunch)+45
+    );
+
+
+  ordered.forEach((subject,index) => {
+
+    let duration = eachTime;
+
+
+    if(subject.difficulty==="Hard") {
+      duration += 15;
+    }
+
+    if(subject.difficulty==="Easy") {
+      duration = Math.max(30,duration-15);
+    }
+
+
+    let start = studyStart;
+
+    let end = start + duration;
+
+
+    // Don't go into dinner
+    const dinnerMin =
+      toMinutes(dinner);
+
+
+    if(start < dinnerMin) {
+
+      end =
+        Math.min(end,dinnerMin);
+
+      if(end > start) {
+
+        addTask(
+          "📚 " + subject.name +
+          " Study",
+          toTime(start),
+          toTime(end)
+        );
+
+      }
+
+    }
+
+
+    studyStart = end + 15;
+
+
+    // Break
+    if(index < ordered.length-1 &&
+       studyStart < dinnerMin) {
+
+      addTask(
+        "☕ Short Break",
+        toTime(end),
+        toTime(end+15)
+      );
+
+    }
+
+  });
+
+
+  // ------------------------------
+  // Dinner
+  // ------------------------------
+
+  addTask(
+    "🍽️ Dinner",
+    dinner,
+    toTime(toMinutes(dinner)+30)
+  );
+
+
+  // ------------------------------
+  // Revision
+  // ------------------------------
+
+  let revisionStart =
+    toMinutes(dinner)+30;
+
+  let revisionEnd =
+    revisionStart+30;
+
+
+  const sleepStart =
+    toMinutes(sleep);
+
+
+  if(revisionEnd <= sleepStart) {
+
+    addTask(
+      "📖 Revision",
+      toTime(revisionStart),
+      toTime(revisionEnd)
+    );
+
+  }
+
+
+  // ------------------------------
+  // Prepare tomorrow
+  // ------------------------------
+
+  let prepareStart =
+    revisionEnd;
+
+
+  if(prepareStart < sleepStart) {
+
+    addTask(
+      "🎒 Prepare for Tomorrow",
+      toTime(prepareStart),
+      toTime(
+        Math.min(
+          prepareStart+15,
+          sleepStart
+        )
+      )
+    );
+
+  }
+
+
+  // ------------------------------
+  // Free time
+  // ------------------------------
+
+  let freeStart =
+    prepareStart + 15;
+
+
+  if(freeStart < sleepStart) {
+
+    addTask(
+      "🎮 Free Time / Relax",
+      toTime(freeStart),
+      sleep
+    );
+
+  }
+
+
+  // ------------------------------
+  // Sleep
+  // ------------------------------
+
+  addTask(
+    "😴 Sleep",
+    sleep,
+    wake
+  );
+
+
+  showTimetable();
+
+
+  document.getElementById("alarmStatus")
+    .innerHTML =
+    "🔕 Alarm OFF — Press START DAY";
+
+
+  dayStarted = false;
+
+}
+
+
+// =================================================
+// SHOW TIMETABLE
+// =================================================
+
+function showTimetable() {
+
+  const box =
+    document.getElementById("timetable");
+
+  box.innerHTML = "";
+
+
+  timetable.forEach(task => {
+
+    const div =
+      document.createElement("div");
+
+    div.className = "task";
+
+    div.innerHTML = `
+
+      <h3>${task.name}</h3>
+
+      <div class="time">
+        ⏰ ${format12(task.start)}
+        -
+        ${format12(task.end)}
+      </div>
+
+    `;
+
+    box.appendChild(div);
+
+  });
+
+}
+
+
+// =================================================
+// AUDIO
+// =================================================
+
+function setupAudio() {
+
+  try {
+
+    if(!audioContext) {
+
+      audioContext =
+        new (window.AudioContext ||
+             window.webkitAudioContext)();
+
+    }
+
+
+    if(audioContext.state === "suspended") {
+
+      audioContext.resume();
+
+    }
+
+    return true;
+
+  } catch(e) {
+
+    return false;
+
+  }
+
+}
+
+
+// =================================================
+// ALARM
+// =================================================
+
+function playAlarm() {
+
+  // METHOD 1: Web Audio
+
+  if(setupAudio()) {
+
+    const now =
+      audioContext.currentTime;
+
+
+    for(let i=0;i<4;i++) {
+
+      const osc =
+        audioContext.createOscillator();
+
+      const gain =
+        audioContext.createGain();
+
+
+      osc.type = "square";
+
+      osc.frequency.value = 1000;
+
+
+      gain.gain.setValueAtTime(
+        0.001,
+        now + i*0.6
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        0.7,
+        now + i*0.6 + 0.05
+      );
+
+      gain.gain.exponentialRampToValueAtTime(
+        0.001,
+        now + i*0.6 + 0.4
+      );
+
+
+      osc.connect(gain);
+
+      gain.connect(
+        audioContext.destination
+      );
+
+
+      osc.start(
+        now + i*0.6
+      );
+
+      osc.stop(
+        now + i*0.6 + 0.45
+      );
+
+    }
+
+  }
+
+
+  // METHOD 2: Vibration
+
+  if(navigator.vibrate) {
+
+    navigator.vibrate([
+      500,200,
+      500,200,
+      500,200,
+      500
+    ]);
+
+  }
+
+
+  // METHOD 3: Voice fallback
+
+  try {
+
+    const speech =
+      new SpeechSynthesisUtterance(
+        "StudyPulse. Your task is finished. Move to the next task."
+      );
+
+    speech.volume = 1;
+
+    speech.rate = 1;
+
+    speech.pitch = 1;
+
+    speechSynthesis.cancel();
+
+    speechSynthesis.speak(speech);
+
+  } catch(e) {}
+
+}
+
+
+// =================================================
+// TEST ALARM
+// =================================================
+
+function testAlarm() {
+
+  setupAudio();
+
+  playAlarm();
+
+
+  document.getElementById("alarmStatus")
+    .innerHTML =
+    "🔔 TEST ALARM PLAYED";
+
+
+  setTimeout(() => {
+
+    if(!dayStarted) {
+
+      document.getElementById("alarmStatus")
+        .innerHTML =
+        "🔕 Alarm OFF — Press START DAY";
+
+    }
+
+  },4000);
+
+}
+
+
+// =================================================
+// START DAY
+// =================================================
+
+function startDay() {
+
+  if(timetable.length===0) {
+
+    alert(
+      "First generate the timetable."
+    );
+
+    return;
+  }
+
+
+  // User click enables audio
+  setupAudio();
+
+
+  dayStarted = true;
+
+  lastTaskIndex = -1;
+
+
+  document.getElementById("alarmStatus")
+    .innerHTML =
+    "🔔 Alarm is ON";
+
+
+  updateCurrentTask();
+
+
+  if(timer) {
+
+    clearInterval(timer);
+
+  }
+
+
+  timer =
+    setInterval(
+      updateCurrentTask,
+      1000
+    );
+
+
+  // Small confirmation
+  playAlarm();
+
+}
+
+
+// =================================================
+// CURRENT TASK
+// =================================================
+
+function getCurrentTask() {
+
+  const now =
+    new Date();
+
+
+  const current =
+    now.getHours()*60 +
+    now.getMinutes() +
+    now.getSeconds()/60;
+
+
+  for(let i=0;i<timetable.length;i++) {
+
+    const task =
+      timetable[i];
+
+
+    const start =
+      toMinutes(task.start);
+
+    const end =
+      toMinutes(task.end);
+
+
+    // Overnight task
+    if(end <= start) {
+
+      if(
+        current >= start ||
+        current < end
+      ) {
+
+        return {
+          task:task,
+          index:i
+        };
+
+      }
+
+    }
+
+    else {
+
+      if(
+        current >= start &&
+        current < end
+      ) {
+
+        return {
+          task:task,
+          index:i
+        };
+
+      }
+
+    }
+
+  }
+
+
+  return null;
+
+}
+
+
+// =================================================
+// UPDATE CURRENT TASK
+// =================================================
+
+function updateCurrentTask() {
+
+  if(!dayStarted) return;
+
+
+  const result =
+    getCurrentTask();
+
+
+  if(!result) {
+
+    document.getElementById("currentTask")
+      .innerHTML =
+      "⏳ No scheduled task right now";
+
+
+    document.getElementById("countdown")
+      .innerHTML =
+      "00:00:00";
+
+
+    document.getElementById("taskTime")
+      .innerHTML =
+      "⏰ Waiting for next task";
+
+    return;
+
+  }
+
+
+  const task =
+    result.task;
+
+  const index =
+    result.index;
+
+
+  // New task
+  if(index !== lastTaskIndex) {
+
+    if(lastTaskIndex !== -1) {
+
+      playAlarm();
+
+    }
+
+    lastTaskIndex = index;
+
+  }
+
+
+  document.getElementById("currentTask")
+    .innerHTML =
+    "▶️ NOW: " + task.name;
+
+
+  document.getElementById("taskTime")
+    .innerHTML =
+    "⏰ " +
+    format12(task.start) +
+    " - " +
+    format12(task.end);
+
+
+  updateCountdown(task);
+
+}
+
+
+// =================================================
+// COUNTDOWN
+// =================================================
+
+function updateCountdown(task) {
+
+  const now =
+    new Date();
+
+
+  let end =
+    new Date();
+
+
+  const [h,m] =
+    task.end
+      .split(":")
+      .map(Number);
+
+
+  end.setHours(h,m,0,0);
+
+
+  if(end <= now) {
+
+    end.setDate(
+      end.getDate()+1
+    );
+
+  }
+
+
+  let seconds =
+    Math.max(
+      0,
+      Math.floor(
+        (end-now)/1000
+      )
+    );
+
+
+  const hours =
+    Math.floor(seconds/3600);
+
+
+  seconds %= 3600;
+
+
+  const minutes =
+    Math.floor(seconds/60);
+
+
+  seconds %= 60;
+
+
+  document.getElementById("countdown")
+    .innerHTML =
+    String(hours).padStart(2,"0")
+    + ":" +
+    String(minutes).padStart(2,"0")
+    + ":" +
+    String(seconds).padStart(2,"0");
+
+}
+
+</script>
+
+</body>
+</html>
